@@ -1,0 +1,57 @@
+{
+  "name": "Weblate Dev Container",
+
+  // Use the self-contained Docker Compose file
+  "dockerComposeFile": [
+    "${localWorkspaceFolder}/.devcontainer/docker-compose.yml"
+  ],
+
+  // The service defined in docker-compose.devcontainer.yml to connect VS Code to
+  "service": "weblate",
+
+  // The path in the container where the project folder is mounted and VS Code should open
+  "workspaceFolder": "/workspaces/weblate",
+
+  // Forward the application port (using WEBLATE_PORT from .env) and the debug port
+  "forwardPorts": [
+    "${localEnv:WEBLATE_PORT:-8080}", // Use the same logic as docker-compose.limited.yml
+    5678 // Debug port
+  ],
+
+  // Set the user VS Code should connect as (matches the USER in the Dockerfile)
+  "remoteUser": "vscode",
+
+  // VS Code settings specific to this container
+  "settings": {
+    "python.defaultInterpreterPath": "/app/venv/bin/python",
+    "python.testing.pytestArgs": [
+      "weblate" // Adjust if tests are located elsewhere
+    ],
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestEnabled": true,
+    // Add other useful settings like linters, formatters if desired
+    "[python]": {
+        "editor.defaultFormatter": "ms-python.black-formatter", // Example formatter
+        "editor.formatOnSave": true
+    }
+  },
+
+  // VS Code extensions to install in the container
+  "extensions": [
+    "ms-python.python", // Python language support
+    "ms-python.debugpy", // Python debugger
+    "ms-python.black-formatter", // Example: Black code formatter
+    "ms-azuretools.vscode-docker", // Docker extension
+    "redhat.vscode-yaml", // YAML support for compose files
+    "esbenp.prettier-vscode" // Prettier for other file types if needed
+    // Add other relevant extensions like GitLens, linters, etc.
+  ],
+
+  // Optional: Run commands after the container is fully running and VS Code is attached
+  // "postAttachCommand": {
+  //   "server": "echo 'Dev container ready!'"
+  // },
+
+  // Prevent VS Code from trying to run the default entrypoint/command after attach
+  "overrideCommand": false
+}

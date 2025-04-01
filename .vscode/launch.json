@@ -1,0 +1,21 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Python: Attach to Weblate (Docker)",
+      "type": "debugpy",
+      "request": "attach",
+      "connect": {
+        "host": "localhost", // Connect to the port forwarded by VS Code
+        "port": 5678      // Must match the port in devcontainer.json and custom-start.sh
+      },
+      "pathMappings": [
+        {
+          "localRoot": "${workspaceFolder}", // Your local project root
+          "remoteRoot": "/workspaces/weblate" // The workspace root inside the container
+        }
+      ],
+      "justMyCode": true // Set to false if you need to step into library code
+    }
+  ]
+}

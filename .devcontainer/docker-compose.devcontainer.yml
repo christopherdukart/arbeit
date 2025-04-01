@@ -1,0 +1,48 @@
+# Extends the limited development setup for VS Code Dev Containers
+# Adds persistent venv and debugging capabilities
+
+version: '3.8'
+
+services:
+  weblate:
+    # Extend the service definition from the original limited compose file
+    extends:
+      file: ../weblate/dev-docker/docker-compose.limited.yml
+      service: weblate
+    volumes:
+      # Add a named volume for the Python virtual environment to persist it
+      - weblate_venv:/app/venv
+      # Mount the custom start script into the container
+      - ./custom-start.sh:/app/bin/custom-start.sh:ro
+      # Keep the original source code mount from docker-compose.limited.yml
+      - ../weblate:/workspaces/weblate:cached
+      # Keep the original data mount
+      - ../weblate/dev-docker/data:/app/data
+    # Override the entrypoint to use our custom script
+    entrypoint: /app/bin/custom-start.sh
+    # Expose and map the debug port
+    ports:
+      - "5678:5678" # Debug port
+
+  # Include dependent services from the original file
+  database:
+    extends:
+      file: ../weblate/dev-docker/docker-compose.limited.yml
+      service: database
+
+  cache:
+    extends:
+      file: ../weblate/dev-docker/docker-compose.limited.yml
+      service: cache
+
+volumes:
+  # Define the named volume for the persistent venv
+  weblate_venv:
+  # Keep original volumes defined in the base file (implicitly included by extends, but good practice to list if overriding)
+  postgres-data:
+    external: false # Assuming these are defined in the base file and not external
+  redis-data:
+    external: false
+  # weblate-data seems unused but keep consistency if needed
+  weblate-data:
+    external: false
