@@ -7,10 +7,19 @@ services:
     # Use the original entrypoint, but override the command to start with debugpy
     # listening on port 5678 and run the server without auto-reloading.
     # Note: /app/bin/start eventually calls 'weblate runserver ...'
-    # We need to invoke the underlying Django manage command via python with debugpy.
-    # Assuming /app/venv/bin/python is the correct interpreter.
-    command: >
-      sh -c "/app/venv/bin/python -m debugpy --wait-for-client --listen 0.0.0.0:5678 /app/manage.py runserver 0.0.0.0:8080 --noreload"
+    # We explicitly set the entrypoint to the python interpreter and pass
+    # debugpy and runserver arguments via the command list.
+    entrypoint: /app/venv/bin/python
+    command: 
+      - "-m"
+      - "debugpy"
+      - "--wait-for-client"
+      - "--listen"
+      - "0.0.0.0:5678"
+      - "/app/manage.py" # Path to Django's manage.py inside the container
+      - "runserver"
+      - "0.0.0.0:8080"
+      - "--noreload"
     restart: unless-stopped
     depends_on:
       - database
