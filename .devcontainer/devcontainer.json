@@ -1,57 +1,43 @@
 {
-  "name": "Weblate Dev Container",
-
-  // Use the self-contained Docker Compose file
-  "dockerComposeFile": [
-    "${localWorkspaceFolder}/.devcontainer/docker-compose.yml"
-  ],
-
-  // The service defined in docker-compose.devcontainer.yml to connect VS Code to
+  "name": "Weblate Plugin Development",
+  // Use the docker-compose.yml file to define the services
+  "dockerComposeFile": "docker-compose.yml",
+  // The service VS Code should connect to within the compose setup
   "service": "weblate",
-
-  // The path in the container where the project folder is mounted and VS Code should open
-  "workspaceFolder": "/workspaces/weblate",
-
-  // Forward the application port (using WEBLATE_PORT from .env) and the debug port
+  // The folder inside the container where your project files will be mounted
+  "workspaceFolder": "/workspace",
+  // Use 'forwardPorts' to make ports available locally.
   "forwardPorts": [
-    "${localEnv:WEBLATE_PORT:-8080}", // Use the same logic as docker-compose.limited.yml
-    5678 // Debug port
+    8080 // Weblate web UI
+    // Add other ports if needed, e.g., for debugging
   ],
-
-  // Set the user VS Code should connect as (matches the USER in the Dockerfile)
-  "remoteUser": "vscode",
-
-  // VS Code settings specific to this container
+  // Set *default* container specific settings.json values on container create.
   "settings": {
     "python.defaultInterpreterPath": "/app/venv/bin/python",
-    "python.testing.pytestArgs": [
-      "weblate" // Adjust if tests are located elsewhere
-    ],
+    "python.linting.enabled": true,
+    "python.linting.pylintEnabled": true, // Or flake8, etc.
+    "python.formatting.provider": "black", // Or autopep8
     "python.testing.unittestEnabled": false,
-    "python.testing.pytestEnabled": true,
-    // Add other useful settings like linters, formatters if desired
-    "[python]": {
-        "editor.defaultFormatter": "ms-python.black-formatter", // Example formatter
-        "editor.formatOnSave": true
-    }
+    "python.testing.pytestEnabled": true // Assuming pytest is used in Weblate
   },
+  // // Add the IDs of extensions you want installed when the container is created.
+  // "extensions": [
+  //   "ms-python.python", // Essential Python support
+  //   "ms-python.debugpy", // Python debugger
+  //   "ms-azuretools.vscode-docker" // Docker integration
+  //   // Add any other extensions relevant for your workflow
+  // ],
+  // Use 'postCreateCommand' to run commands after the container is created.
+  // Example: Install plugin-specific dependencies if needed
+  // "postCreateCommand": "pip install -r requirements-dev.txt",
 
-  // VS Code extensions to install in the container
-  "extensions": [
-    "ms-python.python", // Python language support
-    "ms-python.debugpy", // Python debugger
-    "ms-python.black-formatter", // Example: Black code formatter
-    "ms-azuretools.vscode-docker", // Docker extension
-    "redhat.vscode-yaml", // YAML support for compose files
-    "esbenp.prettier-vscode" // Prettier for other file types if needed
-    // Add other relevant extensions like GitLens, linters, etc.
-  ],
+  // Comment out connectAsRoot=true if you don't need access to root-level commands.
+  // "remoteUser": "weblate" // Run as the non-root 'weblate' user defined in the base image if possible
+  // Note: The base image might run processes as root initially. Check container behavior.
+  // If you need to install things, you might need root temporarily or adjust permissions.
 
-  // Optional: Run commands after the container is fully running and VS Code is attached
-  // "postAttachCommand": {
-  //   "server": "echo 'Dev container ready!'"
-  // },
-
-  // Prevent VS Code from trying to run the default entrypoint/command after attach
-  "overrideCommand": false
+  // Features to add to the dev container (optional)
+  // "features": {
+  //   "ghcr.io/devcontainers/features/git:1": {}
+  // }
 }

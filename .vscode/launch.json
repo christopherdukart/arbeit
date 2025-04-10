@@ -2,20 +2,34 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Python: Attach to Weblate (Docker)",
+      "name": "Python: Attach to Weblate (Remote Debug)",
       "type": "debugpy",
       "request": "attach",
       "connect": {
-        "host": "localhost", // Connect to the port forwarded by VS Code
-        "port": 5678      // Must match the port in devcontainer.json and custom-start.sh
+        // Port must match the port exposed by debugpy in the container
+        "host": "localhost", // Connect to the port forwarded from the container
+        "port": 5678
       },
       "pathMappings": [
         {
-          "localRoot": "${workspaceFolder}", // Your local project root
-          "remoteRoot": "/workspaces/weblate" // The workspace root inside the container
+          // Map local project root to the container's workspace folder
+          "localRoot": "${workspaceFolder}",
+          "remoteRoot": "/workspace"
+        },
+        {
+          // Map Weblate source code if needed for deep debugging (adjust if necessary)
+          // This assumes Weblate code lives in /app/src within the container image.
+          // You might not need this mapping initially.
+          "localRoot": "${workspaceFolder}/weblate-src", // If you check out weblate-src locally for reference
+          "remoteRoot": "/app/src" // Path inside the container image
         }
       ],
-      "justMyCode": true // Set to false if you need to step into library code
+      // Set to false if you want to step into library code (like Weblate core)
+      "justMyCode": true,
+      // Ensure VS Code uses the correct Python interpreter within the container
+      // This should match the interpreter used by Weblate
+      "python": "/app/venv/bin/python"
     }
+    // Add other configurations if needed
   ]
 }

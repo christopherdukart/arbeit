@@ -1,94 +1,81 @@
-# Docker Compose file for Weblate Dev Container (Self-Contained)
-# Defines all services independently
-
+# .devcontainer/docker-compose.yml
 version: '3.8'
 
 services:
   weblate:
-    # Build the image using the Dockerfile in the same directory
-    build:
-      context: . # Build context is the .devcontainer directory
-      dockerfile: Dockerfile
-      args:
-        # Pass host user/group IDs for file permissions
-        # Use environment variables defined in .env at the project root if they exist
-        USER_ID: ${USER_ID:-1000}
-        GROUP_ID: ${GROUP_ID:-1000}
-    # Container name for easier identification
-    container_name: weblate_devcontainer_app
-    volumes:
-      # Mount the entire project root into /workspaces (standard for Dev Containers)
-      # Note: The source code for weblate itself will be at /workspaces/weblate
-      - ..:/workspaces:cached
-      # Persistent volume for the Python virtual environment
-      - weblate_venv:/app/venv
-      # Persistent volume for the uv cache
-      - weblate_uv_cache:/app/uv-cache
-      # Optional: Mount local data if needed, but devcontainer usually starts fresh
-      # - ../weblate/dev-docker/data:/app/data # If you need persistent data from original setup
-    ports:
-      # Map the application port (use WEBLATE_PORT from .env or default)
-      - "${WEBLATE_PORT:-8080}:8080"
-      # Map the debug port
-      - "5678:5678"
-    # Set the working directory inside the container
-    working_dir: /workspaces/weblate # Set working dir to the weblate source code
-    # Environment variables for Weblate
-    # Load from .env file at project root if it exists, otherwise use defaults
-    env_file:
-      - ../.env # Load USER_ID/GROUP_ID etc. from project root .env
-    environment:
-      # Weblate specific settings
-      DJANGO_SETTINGS_MODULE: weblate.settings_docker
-      WEBLATE_SITE_DOMAIN: "localhost:${WEBLATE_PORT:-8080}"
-      WEBLATE_DEBUG: 1
-      WEBLATE_LOGLEVEL: DEBUG
-      # Database connection (matches database service below)
-      POSTGRES_HOST: database
-      POSTGRES_PORT: 5432 # Default PostgreSQL port inside docker network
-      POSTGRES_USER: weblate
-      POSTGRES_PASSWORD: weblate_password # Use a distinct password
-      POSTGRES_DB: weblate
-      # Cache connection (matches cache service below)
-      REDIS_HOST: cache
-      REDIS_PORT: 6379
-      # Add other necessary Weblate env vars here or in the .env file
-      WEBLATE_ADMIN_EMAIL: admin@example.com
-      WEBLATE_ADMIN_PASSWORD: adminpassword
-      WEBLATE_ALLOWED_HOSTS: '*' # Be careful with this in production
+    image: weblate/weblate:5.10.4.0
+    # Use the original entrypoint, but override the command to start with debugpy
+    # listening on port 5678 and run the server without auto-reloading.
+    # Note: /app/bin/start eventually calls 'weblate runserver ...'
+    # We need to invoke the underlying Django manage command via python with debugpy.
+    # Assuming /app/venv/bin/python is the correct interpreter.
+    command: >
+      sh -c "/app/venv/bin/python -m debugpy --wait-for-client --listen 0.0.0.0:5678 /app/manage.py runserver 0.0.0.0:8080 --noreload"
+    restart: unless-stopped
     depends_on:
       - database
       - cache
-    # Keep the container running
-    # command: sleep infinity # Use if ENTRYPOINT handles the main process
+    ports:
+      # Expose Weblate web interface (adjust host port if 8080 is taken)
+      - "8080:8080"
+    volumes:
+      # Mount the project root (containing your plugins) into /workspace
+      # Note: '..' refers to the parent directory of .devcontainer, which is the project root.
+      - ..:/workspace:cached
+      # Persistent data volume for Weblate (optional, but recommended)
+      - weblate-data:/app/data
+      # Temporary storage (can use tmpfs for performance if needed)
+      # - tmpfs:/app/cache
+      # - tmpfs:/tmp
+    environment:
+      # --- Basic Weblate Settings ---
+      WEBLATE_SITE_DOMAIN: localhost:8080 # Adjust if you use a different host port
+      WEBLATE_ADMIN_NAME: Weblate Admin
+      WEBLATE_ADMIN_EMAIL: admin@example.com # Change as needed
+      WEBLATE_ADMIN_PASSWORD: admin # Change for security if needed
+      WEBLATE_SERVER_EMAIL: weblate@example.com
+      WEBLATE_DEFAULT_FROM_EMAIL: weblate@example.com
+      WEBLATE_ALLOWED_HOSTS: '*' # Be more specific in production
+
+      # --- Development Settings ---
+      WEBLATE_DEBUG: 1
+      WEBLATE_LOGLEVEL: DEBUG
+      WEBLATE_REGISTRATION_OPEN: 1 # Allow easy registration during development
+
+      # --- Plugin Settings ---
+      # Tell Weblate where to find custom addons (mounted from your workspace)
+      WEBLATE_ADDONS: /workspace/addons:/workspace/checks:/workspace/fixups # Add other plugin paths if needed
+
+      # --- Service Connections ---
+      POSTGRES_HOST: database
+      POSTGRES_PORT: 5432 # Default PostgreSQL port
+      POSTGRES_USER: weblate
+      POSTGRES_PASSWORD: weblate_password # Use a secure password
+      POSTGRES_DB: weblate
+      REDIS_HOST: cache
+      REDIS_PORT: 6379 # Default Redis port
+      # No need for DJANGO_SETTINGS_MODULE, the base image handles this
 
   database:
-    image: postgres:17-alpine
-    container_name: weblate_devcontainer_db
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      # Optional: Use init scripts if needed
-      # - ../weblate/dev-docker/postgres-init:/docker-entrypoint-initdb.d
+    image: postgres:16-alpine # Use a specific version
+    restart: unless-stopped
     environment:
       POSTGRES_USER: weblate
-      POSTGRES_PASSWORD: weblate_password # Must match weblate service
+      POSTGRES_PASSWORD: weblate_password # Must match WEBLATE service
       POSTGRES_DB: weblate
-    restart: unless-stopped
-    # Expose port only if needed for direct access from host (usually not required)
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    # Expose port only if direct access from host is needed for debugging
     # ports:
-    #   - "5433:5432"
+    #   - "5432:5432"
 
   cache:
-    image: redis:7-alpine
-    container_name: weblate_devcontainer_cache
-    volumes:
-      - redis_data:/data
+    image: redis:7-alpine # Use a specific version
     restart: unless-stopped
-    command: [redis-server, --save, '60', '1'] # Example persistence config
+    volumes:
+      - redis-data:/data
 
 volumes:
-  # Define named volumes for persistence
-  weblate_venv:
-  weblate_uv_cache:
-  postgres_data:
-  redis_data:
+  weblate-data:
+  postgres-data:
+  redis-data:
