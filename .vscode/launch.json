@@ -8,7 +8,7 @@
       "connect": {
         // Port must match the port exposed by debugpy in the container
         "host": "localhost", // Connect to the port forwarded from the container
-        "port": 5678
+        "port": 8085
       },
       "pathMappings": [
         {
